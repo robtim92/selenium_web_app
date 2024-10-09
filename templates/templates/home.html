@@ -1,0 +1,48 @@
+<!-- templates/home.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Selenium Web Scraper API</title>
+</head>
+<body>
+    <h1>Welcome to the Selenium Web Scraper API</h1>
+    <p>Use the form below to start scraping.</p>
+    <form id="scrape-form" onsubmit="return false;">
+        <input type="text" id="keyword" name="keyword" placeholder="Enter keyword" required>
+        <input type="text" id="city_name" name="city_name" placeholder="Enter city (optional)">
+        <button id="submit-btn">Start Scraping</button>
+    </form>
+
+    <div id="results"></div>
+
+    <script>
+        document.getElementById('submit-btn').addEventListener('click', async function() {
+            const keyword = document.getElementById('keyword').value;
+            const city_name = document.getElementById('city_name').value;
+
+            try {
+                const response = await fetch('/scrape', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'  // Optional but helpful
+                    },
+                    body: JSON.stringify({ keyword, city_name })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('results').innerText = JSON.stringify(data, null, 2);
+                } else {
+                    document.getElementById('results').innerText = `Error: ${response.status} - ${response.statusText}`;
+                }
+            } catch (error) {
+                document.getElementById('results').innerText = `Error: ${error.message}`;
+            }
+        });
+    </script>
+</body>
+</html>
