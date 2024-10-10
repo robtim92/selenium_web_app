@@ -54,8 +54,18 @@ def scrape():
 
     keyword = data.get('keyword', '')
     city_name = data.get('city_name', '')
-    latitude, longitude = get_coordinates_from_city(city_name) if city_name else (None, None)
 
+    # Validate the keyword
+    if not keyword:
+        return jsonify({"error": "Keyword is required to perform a search."}), 400
+
+    # Validate city and geolocation
+    latitude, longitude = get_coordinates_from_city(city_name) if city_name else (None, None)
+    if city_name and (latitude is None or longitude is None):
+        app.logger.warning("City '%s' not found. Defaulting to no location.", city_name)
+        return jsonify({"error": f"City '{city_name}' not found. Defaulting to no location."}), 200
+
+    # Perform the scraping operation
     driver = None
     results = recursive_search(keyword, max_depth=2, driver=driver, latitude=latitude, longitude=longitude)
 
