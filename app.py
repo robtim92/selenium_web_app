@@ -3,9 +3,11 @@
 import os
 import logging
 from logging.handlers import RotatingFileHandler
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, send_file
 from dotenv import load_dotenv
 from scraper.scraper import recursive_search, get_coordinates_from_city
+import csv
+import tempfile
 
 load_dotenv()
 app = Flask(__name__)
@@ -78,6 +80,38 @@ def scrape():
     else:
         app.logger.error("Scraping failed for keyword: %s", keyword)
         return jsonify(message="An error occurred during scraping."), 500
+
+@app.route('/export-csv', methods=['POST'])
+def export_csv():
+    """Exports the scraped data to a CSV file."""
+    data = request.get_json()
+
+    # Validate data
+    if not data or 'results' not in data:
+        app.logger.error("No data provided for export")
+        return jsonify({"error": "No data provided for export"}), 400
+
+    # Create a temporary file to store the CSV
+    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.csv')
+
+    # Define the headers for the CSV
+    fieldnames = ['Query', 'PAA Questions', 'Autofill Suggestions', 'Related Searches']
+
+    # Write the data to the CSV
+    with open(temp_file.name, 'w', newline='', encoding='utf-8') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        for result in data['results']:
+            writer.writerow({
+                'Query': result['query'],
+                'PAA Questions': '; '.join(result['paa_questions']),
+                'Autofill Suggestions': '; '.join(result['autofill_suggestions']),
+                'Related Searches': '; '.join(result['related_searches'])
+            })
+
+    app.logger.info("CSV export created successfully")
+    # Return the CSV file as a download
+    return send_file(temp_file.name, as_attachment=True, download_name='scraped_data.csv')
 
 if __name__ == '__main__':
     app.run()

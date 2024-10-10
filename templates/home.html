@@ -39,12 +39,15 @@
         <input type="text" id="keyword" name="keyword" placeholder="Enter keyword" required>
         <input type="text" id="city_name" name="city_name" placeholder="Enter city (optional)">
         <button id="submit-btn">Start Scraping</button>
+        <button id="export-csv-btn" style="display: none;">Export as CSV</button>
     </form>
 
     <div id="results"></div>
     <div id="paa-table-container"></div>
 
     <script>
+        let scrapedData = null;
+
         document.getElementById('submit-btn').addEventListener('click', async function() {
             const keyword = document.getElementById('keyword').value;
             const city_name = document.getElementById('city_name').value;
@@ -61,6 +64,8 @@
 
                 if (response.ok) {
                     const data = await response.json();
+                    scrapedData = data;  // Store data for export
+                    document.getElementById('export-csv-btn').style.display = 'inline-block';
 
                     // Display raw results as JSON for debugging or detailed view
                     document.getElementById('results').innerText = JSON.stringify(data.results, null, 2);
@@ -76,6 +81,29 @@
             } catch (error) {
                 document.getElementById('results').innerText = `Error: ${error.message}`;
             }
+        });
+
+        document.getElementById('export-csv-btn').addEventListener('click', function() {
+            if (!scrapedData) {
+                alert('No data to export!');
+                return;
+            }
+
+            const csvData = [];
+            csvData.push(['People Also Ask Question', 'Count']);
+
+            scrapedData.paa_table.forEach(row => {
+                csvData.push([row.question, row.count]);
+            });
+
+            const csvContent = 'data:text/csv;charset=utf-8,' + csvData.map(e => e.join(',')).join('\n');
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement('a');
+            link.setAttribute('href', encodedUri);
+            link.setAttribute('download', 'paa_questions.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         });
 
         function createPAATable(paaData) {
