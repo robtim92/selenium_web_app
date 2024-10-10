@@ -6,6 +6,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Selenium Web Scraper API</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f4f4f4;
+        }
+
+        #results {
+            white-space: pre-wrap;
+            margin-top: 20px;
+        }
+    </style>
 </head>
 <body>
     <h1>Welcome to the Selenium Web Scraper API</h1>
@@ -17,6 +42,7 @@
     </form>
 
     <div id="results"></div>
+    <div id="paa-table-container"></div>
 
     <script>
         document.getElementById('submit-btn').addEventListener('click', async function() {
@@ -28,14 +54,22 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Accept': 'application/json'  // Optional but helpful
+                        'Accept': 'application/json'
                     },
                     body: JSON.stringify({ keyword, city_name })
                 });
 
                 if (response.ok) {
                     const data = await response.json();
-                    document.getElementById('results').innerText = JSON.stringify(data, null, 2);
+
+                    // Display raw results as JSON for debugging or detailed view
+                    document.getElementById('results').innerText = JSON.stringify(data.results, null, 2);
+
+                    // Display the PAA frequency table
+                    if (data.paa_table && data.paa_table.length > 0) {
+                        const tableContainer = document.getElementById('paa-table-container');
+                        tableContainer.innerHTML = createPAATable(data.paa_table);
+                    }
                 } else {
                     document.getElementById('results').innerText = `Error: ${response.status} - ${response.statusText}`;
                 }
@@ -43,6 +77,35 @@
                 document.getElementById('results').innerText = `Error: ${error.message}`;
             }
         });
+
+        function createPAATable(paaData) {
+            let tableHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>People Also Ask Question</th>
+                            <th>Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            for (const { question, count } of paaData) {
+                tableHTML += `
+                    <tr>
+                        <td>${question}</td>
+                        <td>${count}</td>
+                    </tr>
+                `;
+            }
+
+            tableHTML += `
+                    </tbody>
+                </table>
+            `;
+
+            return tableHTML;
+        }
     </script>
 </body>
 </html>

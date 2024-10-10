@@ -67,11 +67,14 @@ def scrape():
 
     # Perform the scraping operation
     driver = None
-    results = recursive_search(keyword, max_depth=2, driver=driver, latitude=latitude, longitude=longitude)
+    results, sorted_paa_questions = recursive_search(keyword, max_depth=2, driver=driver, latitude=latitude, longitude=longitude)
+
+    # Format the sorted PAA questions as a list of dictionaries for JSON serialization
+    paa_question_table = [{"question": q, "count": count} for q, count in sorted_paa_questions]
 
     if results:
         app.logger.info("Scraping completed successfully for keyword: %s", keyword)
-        return jsonify(results=results), 200
+        return jsonify(results=results, paa_table=paa_question_table), 200
     else:
         app.logger.error("Scraping failed for keyword: %s", keyword)
         return jsonify(message="An error occurred during scraping."), 500

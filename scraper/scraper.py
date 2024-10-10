@@ -12,6 +12,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
 import multiprocessing
+from collections import Counter
 
 def get_coordinates_from_city(city_name):
     """
@@ -111,9 +112,17 @@ def recursive_search(keyword, depth=1, max_depth=3, driver=None, latitude=None, 
     """
     Recursively fetches search results using PAA questions and related searches.
     """
-    results = [get_google_search_results_selenium(keyword, latitude, longitude, driver)]
+    # List to store all PAA questions across recursive searches
+    all_paa_questions = []
+
+    # Get initial search results
+    initial_result = get_google_search_results_selenium(keyword, latitude, longitude, driver)
+    results = [initial_result]
+    all_paa_questions.extend(initial_result.get('paa_questions', []))
+
+    # If deeper recursion is required, proceed with gathering more terms
     if depth < max_depth:
-        terms = results[0]['paa_questions'] + results[0]['related_searches']
+        terms = initial_result.get('paa_questions', []) + initial_result.get('related_searches', [])
         max_workers = min(5, multiprocessing.cpu_count() * 2)
 
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -122,6 +131,14 @@ def recursive_search(keyword, depth=1, max_depth=3, driver=None, latitude=None, 
                 for term in terms
             }
             for future in as_completed(future_to_term):
-                results.extend(future.result())
+                future_result = future.result()
+                if isinstance(future_result, tuple) and len(future_result) == 2:
+                    future_results, future_sorted_paa = future_result
+                    results.extend(future_results)
+                    all_paa_questions.extend([q for q, _ in future_sorted_paa])
 
-    return results
+    # Count occurrences of each PAA question correctly
+    paa_question_counts = Counter(all_paa_questions)
+    sorted_paa_questions = sorted(paa_question_counts.items(), key=lambda x: x[1], reverse=True)
+
+    return results, sorted_paa_questions
