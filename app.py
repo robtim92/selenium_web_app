@@ -83,35 +83,45 @@ def scrape():
 
 @app.route('/export-csv', methods=['POST'])
 def export_csv():
-    """Exports the scraped data to a CSV file."""
+    """Exports the aggregated PAA question data to a CSV file."""
     data = request.get_json()
 
     # Validate data
-    if not data or 'results' not in data:
-        app.logger.error("No data provided for export")
-        return jsonify({"error": "No data provided for export"}), 400
+    if not data or 'paa_table' not in data:
+        app.logger.error("No PAA data provided for export")
+        return jsonify({"error": "No PAA data provided for export"}), 400
 
     # Create a temporary file to store the CSV
     temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.csv')
 
-    # Define the headers for the CSV
-    fieldnames = ['Query', 'PAA Questions', 'Autofill Suggestions', 'Related Searches']
+    try:
+        # Define the headers for the CSV
+        fieldnames = ['People Also Ask Question', 'Count']
 
-    # Write the data to the CSV
-    with open(temp_file.name, 'w', newline='', encoding='utf-8') as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-        for result in data['results']:
-            writer.writerow({
-                'Query': result['query'],
-                'PAA Questions': '; '.join(result['paa_questions']),
-                'Autofill Suggestions': '; '.join(result['autofill_suggestions']),
-                'Related Searches': '; '.join(result['related_searches'])
-            })
+        # Write the aggregated PAA data to the CSV
+        with open(temp_file.name, 'w', newline='', encoding='utf-8') as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()
+            for row in data['paa_table']:
+                writer.writerow({
+                    'People Also Ask Question': row['question'],
+                    'Count': row['count']
+                })
 
-    app.logger.info("CSV export created successfully")
-    # Return the CSV file as a download
-    return send_file(temp_file.name, as_attachment=True, download_name='scraped_data.csv')
+        app.logger.info("CSV export created successfully")
+        # Return the CSV file as a download
+        return send_file(temp_file.name, as_attachment=True, download_name='paa_data.csv')
+
+    except Exception as e:
+        app.logger.error("Error during CSV export: %s", str(e))
+        return jsonify({"error": "Failed to export CSV"}), 500
+
+    finally:
+        # Ensure temporary file is deleted after sending
+        try:
+            os.unlink(temp_file.name)
+        except PermissionError:
+            app.logger.warning("Temporary file could not be deleted immediately: %s", temp_file.name)
 
 if __name__ == '__main__':
     app.run()

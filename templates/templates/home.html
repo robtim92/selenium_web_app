@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Google People Also Ask Scraper Tool | TriMark Digital</title>
-    <link rel="stylesheet" href="/static/style.min.css"> <!-- Assuming the minified CSS is served here -->
+    <link rel="stylesheet" href="/static/style.min.css">
     <style>
         /* General styles */
         body {
@@ -17,7 +17,7 @@
 
         /* Header styles */
         header {
-            background-color: #0E1B50; /* Dark primary TriMark color */
+            background-color: #0E1B50;
             color: white;
             padding: 20px;
             text-align: center;
@@ -29,7 +29,7 @@
         }
 
         h1 {
-            color: white; /* Set H1 to white */
+            color: white;
         }
 
         /* Container styles */
@@ -233,9 +233,46 @@
             }
         });
 
+        document.getElementById('export-csv-btn').addEventListener('click', async function() {
+            if (!scrapedData || !scrapedData.paa_table) {
+                alert('No data to export.');
+                return;
+            }
+
+            const statusMessages = document.getElementById('status-messages');
+            statusMessages.textContent = 'Preparing CSV export...';
+
+            try {
+                const response = await fetch('/export-csv', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ paa_table: scrapedData.paa_table })
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'paa_data.csv';
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    window.URL.revokeObjectURL(url);
+                    statusMessages.textContent = 'CSV export completed!';
+                } else {
+                    statusMessages.textContent = `Export error: ${response.status} - ${response.statusText}`;
+                }
+            } catch (error) {
+                statusMessages.textContent = `Export error: ${error.message}`;
+            }
+        });
+
         function renderResults(results) {
             const resultsContainer = document.getElementById('results');
-            resultsContainer.innerHTML = ''; // Clear previous results
+            resultsContainer.innerHTML = '';
 
             results.forEach(result => {
                 const queryHeading = document.createElement('h2');
