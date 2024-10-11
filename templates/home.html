@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Selenium Web Scraper API</title>
+    <title>Google People Also Ask Scraper Tool | TriMark Digital</title>
     <link rel="stylesheet" href="/static/style.min.css"> <!-- Assuming the minified CSS is served here -->
     <style>
         /* General styles */
@@ -28,6 +28,10 @@
             margin-bottom: 10px;
         }
 
+        h1 {
+            color: white; /* Set H1 to white */
+        }
+
         /* Container styles */
         .container {
             padding: 40px;
@@ -35,9 +39,25 @@
             margin: 0 auto;
         }
 
-        h1 {
-            margin-top: 0;
-            font-size: 2rem;
+        h2 {
+            font-size: 1.5rem;
+            color: #009afb;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #009afb;
+            padding-bottom: 5px;
+        }
+
+        ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        ul li {
+            background: #f1f9ff;
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .form-container {
@@ -95,6 +115,29 @@
             margin: 10px auto;
         }
 
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: #f9f9f9;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+
+        th {
+            background-color: #009afb;
+            color: white;
+        }
+
+        td {
+            background: #f1f9ff;
+        }
+
         /* Responsive styles */
         @media (max-width: 768px) {
             header {
@@ -129,11 +172,11 @@
 <body>
     <header>
         <img src="https://www.trimarkdigital.com/wp-content/themes/trimark/library/svg/logo-trimark-digital-header-white.svg" alt="TriMark Logo" class="logo">
-        <h1>Selenium Web Scraper API</h1>
+        <h1>Google People Also Ask Scraper</h1>
     </header>
 
     <div class="container">
-        <p>Use the form below to start scraping.</p>
+        <p>Use the form below, and enter your primary search term and location to start scraping.</p>
 
         <div class="form-container">
             <form id="scrape-form" onsubmit="return false;">
@@ -177,13 +220,8 @@
                     const data = await response.json();
                     scrapedData = data;
                     document.getElementById('export-csv-btn').style.display = 'inline-block';
-                    document.getElementById('results').innerText = JSON.stringify(data.results, null, 2);
-
-                    if (data.paa_table && data.paa_table.length > 0) {
-                        const tableContainer = document.getElementById('paa-table-container');
-                        tableContainer.innerHTML = createPAATable(data.paa_table);
-                    }
-
+                    renderResults(data.results);
+                    renderPAATable(data.paa_table);
                     statusMessages.textContent = 'Scraping completed successfully!';
                 } else {
                     statusMessages.textContent = `Error: ${response.status} - ${response.statusText}`;
@@ -195,7 +233,27 @@
             }
         });
 
-        function createPAATable(paaData) {
+        function renderResults(results) {
+            const resultsContainer = document.getElementById('results');
+            resultsContainer.innerHTML = ''; // Clear previous results
+
+            results.forEach(result => {
+                const queryHeading = document.createElement('h2');
+                queryHeading.textContent = `Query: ${result.query}`;
+                resultsContainer.appendChild(queryHeading);
+
+                const paaList = document.createElement('ul');
+                result.paa_questions.forEach(question => {
+                    const listItem = document.createElement('li');
+                    listItem.textContent = question;
+                    paaList.appendChild(listItem);
+                });
+                resultsContainer.appendChild(paaList);
+            });
+        }
+
+        function renderPAATable(paaData) {
+            const tableContainer = document.getElementById('paa-table-container');
             let tableHTML = `
                 <table>
                     <thead>
@@ -207,21 +265,21 @@
                     <tbody>
             `;
 
-            for (const { question, count } of paaData) {
+            paaData.forEach(({ question, count }) => {
                 tableHTML += `
                     <tr>
                         <td>${question}</td>
                         <td>${count}</td>
                     </tr>
                 `;
-            }
+            });
 
             tableHTML += `
                     </tbody>
                 </table>
             `;
 
-            return tableHTML;
+            tableContainer.innerHTML = tableHTML;
         }
     </script>
 </body>
