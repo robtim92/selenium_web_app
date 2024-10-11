@@ -1,49 +1,155 @@
-<!-- templates/home.html -->
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Selenium Web Scraper API</title>
+    <link rel="stylesheet" href="/static/style.min.css"> <!-- Assuming the minified CSS is served here -->
     <style>
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
+        /* General styles */
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: white;
+            color: #0E1B50;
+            margin: 0;
+            padding: 0;
         }
 
-        table, th, td {
+        /* Header styles */
+        header {
+            background-color: #0E1B50; /* Dark primary TriMark color */
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .logo {
+            max-width: 150px;
+            margin-bottom: 10px;
+        }
+
+        /* Container styles */
+        .container {
+            padding: 40px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            margin-top: 0;
+            font-size: 2rem;
+        }
+
+        .form-container {
+            background: #f9f9f9;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .form-container input, .form-container button {
+            padding: 12px;
+            border-radius: 4px;
             border: 1px solid #ddd;
+            font-size: 1rem;
         }
 
-        th, td {
-            padding: 8px;
-            text-align: left;
+        .form-container button {
+            background-color: #009afb;
+            color: white;
+            border: none;
+            cursor: pointer;
         }
 
-        th {
-            background-color: #f4f4f4;
+        .form-container button:hover {
+            background-color: #007bbf;
         }
 
-        #results {
-            white-space: pre-wrap;
+        #loading-icon {
+            display: none;
+            width: 50px;
+            height: 50px;
+            margin: 20px auto;
+        }
+
+        #results, #paa-table-container {
             margin-top: 20px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .status-messages {
+            background-color: #e9f5ff;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            margin-top: 15px;
+            color: #0E1B50;
+            max-width: 600px;
+            margin: 10px auto;
+        }
+
+        /* Responsive styles */
+        @media (max-width: 768px) {
+            header {
+                padding: 15px;
+            }
+
+            .container {
+                padding: 20px;
+            }
+
+            .form-container {
+                padding: 20px;
+                width: 100%;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .form-container input, .form-container button {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+
+            #results, #paa-table-container {
+                width: 100%;
+                padding: 10px;
+            }
         }
     </style>
 </head>
 <body>
-    <h1>Welcome to the Selenium Web Scraper API</h1>
-    <p>Use the form below to start scraping.</p>
-    <form id="scrape-form" onsubmit="return false;">
-        <input type="text" id="keyword" name="keyword" placeholder="Enter keyword" required>
-        <input type="text" id="city_name" name="city_name" placeholder="Enter city (optional)">
-        <button id="submit-btn">Start Scraping</button>
-        <button id="export-csv-btn" style="display: none;">Export as CSV</button>
-    </form>
+    <header>
+        <img src="https://www.trimarkdigital.com/wp-content/themes/trimark/library/svg/logo-trimark-digital-header-white.svg" alt="TriMark Logo" class="logo">
+        <h1>Selenium Web Scraper API</h1>
+    </header>
 
-    <div id="results"></div>
-    <div id="paa-table-container"></div>
+    <div class="container">
+        <p>Use the form below to start scraping.</p>
+
+        <div class="form-container">
+            <form id="scrape-form" onsubmit="return false;">
+                <input type="text" id="keyword" name="keyword" placeholder="Enter keyword" required>
+                <input type="text" id="city_name" name="city_name" placeholder="Enter city (optional)">
+                <button id="submit-btn">Start Scraping</button>
+                <button id="export-csv-btn" style="display: none;">Export as CSV</button>
+            </form>
+        </div>
+
+        <img src="/static/loading_icon.gif" alt="Loading..." id="loading-icon">
+        <div class="status-messages" id="status-messages"></div>
+
+        <div id="results"></div>
+        <div id="paa-table-container"></div>
+    </div>
 
     <script>
         let scrapedData = null;
@@ -51,6 +157,11 @@
         document.getElementById('submit-btn').addEventListener('click', async function() {
             const keyword = document.getElementById('keyword').value;
             const city_name = document.getElementById('city_name').value;
+            const loadingIcon = document.getElementById('loading-icon');
+            const statusMessages = document.getElementById('status-messages');
+
+            loadingIcon.style.display = 'block';
+            statusMessages.textContent = 'Starting scraping process...';
 
             try {
                 const response = await fetch('/scrape', {
@@ -64,46 +175,24 @@
 
                 if (response.ok) {
                     const data = await response.json();
-                    scrapedData = data;  // Store data for export
+                    scrapedData = data;
                     document.getElementById('export-csv-btn').style.display = 'inline-block';
-
-                    // Display raw results as JSON for debugging or detailed view
                     document.getElementById('results').innerText = JSON.stringify(data.results, null, 2);
 
-                    // Display the PAA frequency table
                     if (data.paa_table && data.paa_table.length > 0) {
                         const tableContainer = document.getElementById('paa-table-container');
                         tableContainer.innerHTML = createPAATable(data.paa_table);
                     }
+
+                    statusMessages.textContent = 'Scraping completed successfully!';
                 } else {
-                    document.getElementById('results').innerText = `Error: ${response.status} - ${response.statusText}`;
+                    statusMessages.textContent = `Error: ${response.status} - ${response.statusText}`;
                 }
             } catch (error) {
-                document.getElementById('results').innerText = `Error: ${error.message}`;
+                statusMessages.textContent = `Error: ${error.message}`;
+            } finally {
+                loadingIcon.style.display = 'none';
             }
-        });
-
-        document.getElementById('export-csv-btn').addEventListener('click', function() {
-            if (!scrapedData) {
-                alert('No data to export!');
-                return;
-            }
-
-            const csvData = [];
-            csvData.push(['People Also Ask Question', 'Count']);
-
-            scrapedData.paa_table.forEach(row => {
-                csvData.push([row.question, row.count]);
-            });
-
-            const csvContent = 'data:text/csv;charset=utf-8,' + csvData.map(e => e.join(',')).join('\n');
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement('a');
-            link.setAttribute('href', encodedUri);
-            link.setAttribute('download', 'paa_questions.csv');
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
         });
 
         function createPAATable(paaData) {
