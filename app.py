@@ -124,4 +124,4 @@ def export_csv():
             app.logger.warning("Temporary file could not be deleted immediately: %s", temp_file.name)
 
 if __name__ == '__main__':
-    app.run()
+    app.run(host='0.0.0.0', port=5000, debug=True)
