@@ -17,3 +17,6 @@ logs/
 # Ignore IDE specific files (e.g., VSCode, PyCharm)
 .vscode/
 .idea/
+
+# Ignore Secret Keys
+*.pem
