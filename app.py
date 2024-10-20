@@ -41,6 +41,11 @@ def home():
     """Renders the home page template."""
     return render_template('home.html')
 
+@app.route('/robots.txt')
+def robots():
+    """Serve the robots.txt file."""
+    return send_file('static/robots.txt')
+
 @app.route('/scrape', methods=['POST'])
 def scrape():
     """Handles user input and triggers the scraping process."""
